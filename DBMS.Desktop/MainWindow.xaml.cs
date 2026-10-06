@@ -15,7 +15,7 @@ namespace Dbms.Desktop
         public MainWindow()
         {
             InitializeComponent();
-            _httpClient = new HttpClient { BaseAddress = new System.Uri("http://localhost:5000/") };
+            _httpClient = new HttpClient { BaseAddress = new System.Uri("http://localhost:5088/") };
         }
 
         private async void Refresh_Click(object sender, RoutedEventArgs e)

@@ -1,0 +1,16 @@
+# User-specific files (layout, bookmarks, etc.)
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build outputs and binaries
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio 2015/2017/2019/2022/2026 cache directory
+.vs/

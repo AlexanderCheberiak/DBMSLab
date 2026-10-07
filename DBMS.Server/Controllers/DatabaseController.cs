@@ -2,6 +2,8 @@ using Dbms.Core;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Dbms.Server.Controllers
 {
@@ -9,7 +11,23 @@ namespace Dbms.Server.Controllers
     [Route("api/[controller]")]
     public class DatabaseController : ControllerBase
     {
-        private static Database _database = new Database { Name = "DefaultDB" };
+        // Додано таблицю за замовчуванням для тестування
+        private static Database _database = new Database
+        {
+            Name = "DefaultDB",
+            Tables = new List<Table>
+            {
+                new Table
+                {
+                    Name = "Employees",
+                    Columns = new List<Column>
+                    {
+                        new Column { Name = "Id", Type = ColumnType.Integer },
+                        new Column { Name = "Name", Type = ColumnType.String }
+                    }
+                }
+            }
+        };
         private readonly string _filePath = "database.json";
 
         [HttpGet]
@@ -52,6 +70,18 @@ namespace Dbms.Server.Controllers
                 return Ok(_database);
             }
             return NotFound("File not found");
+        }
+
+        [HttpPost("tables/{tableName}/project")]
+        public ActionResult ProjectTable(string tableName, [FromQuery] string newName, [FromBody] List<string> columnNames)
+        {
+            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound("Table not found");
+
+            var newTable = table.Project(newName, columnNames);
+            _database.Tables.Add(newTable);
+
+            return Ok();
         }
     }
 }

@@ -83,5 +83,43 @@ namespace Dbms.Server.Controllers
 
             return Ok();
         }
+
+        [HttpPut("tables/{tableName}/rename")]
+        public ActionResult RenameTable(string tableName, [FromQuery] string newName)
+        {
+            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound();
+            table.Name = newName;
+            return Ok();
+        }
+
+        [HttpDelete("tables/{tableName}")]
+        public ActionResult DeleteTable(string tableName)
+        {
+            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound();
+            _database.Tables.Remove(table);
+            return Ok();
+        }
+
+        [HttpPut("tables/{tableName}/rows/{rowId}")]
+        public ActionResult UpdateRow(string tableName, int rowId, [FromBody] Dictionary<string, string> rowValues)
+        {
+            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound();
+
+            if (table.UpdateRow(rowId, rowValues)) return Ok();
+            return BadRequest("Data validation failed.");
+        }
+
+        [HttpDelete("tables/{tableName}/rows/{rowId}")]
+        public ActionResult DeleteRow(string tableName, int rowId)
+        {
+            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound();
+
+            if (table.DeleteRow(rowId)) return Ok();
+            return NotFound();
+        }
     }
 }

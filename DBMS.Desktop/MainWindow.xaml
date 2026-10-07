@@ -1,60 +1,138 @@
 ﻿<Window x:Class="Dbms.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DBMS Desktop Client" Height="600" Width="950">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        Title="DBMS" Height="650" Width="1000" Background="#F5F6F7" FontFamily="Segoe UI" FontSize="13">
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Content="Load Database" Width="100" Margin="0,0,10,0" Click="LoadDb_Click"/>
-            <Button Content="Save Database" Width="100" Margin="0,0,10,0" Click="SaveDb_Click"/>
-            <Button Content="Refresh Tables" Width="100" Margin="0,0,15,0" Click="Refresh_Click"/>
-            <TextBlock Text="Вибір таблиці:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <ComboBox x:Name="TableSelector" Width="150" SelectionChanged="TableSelector_SelectionChanged"/>
-        </StackPanel>
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#E1E1E1"/>
+            <Setter Property="BorderBrush" Value="#ADADAD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="280"/>
-            </Grid.ColumnDefinitions>
+    <DockPanel>
+        <!-- Верхня панель інструментів -->
+        <ToolBarTray DockPanel.Dock="Top" Background="White">
+            <ToolBar Background="White" Padding="5">
+                <Button Content="Відкрити БД" Click="LoadDb_Click" Margin="0,0,5,0"/>
+                <Button Content="Зберегти БД" Click="SaveDb_Click" Margin="0,0,5,0"/>
+                <Separator Margin="5,0"/>
+                <Button Content="Оновити список" Click="Refresh_Click"/>
+            </ToolBar>
+        </ToolBarTray>
 
-            <DataGrid x:Name="DataGridMain" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,10,10"/>
+        <!-- Статус-бар внизу -->
+        <StatusBar DockPanel.Dock="Bottom" Background="#007ACC" Foreground="White" Height="25">
+            <StatusBarItem>
+                <TextBlock x:Name="TxtStatus" Text="Готово"/>
+            </StatusBarItem>
+        </StatusBar>
 
-            <StackPanel Grid.Column="1" Margin="5">
-                <TextBlock Text="ДОДАТИ РЯДОК" FontWeight="Bold" Margin="0,0,0,10"/>
-                <StackPanel x:Name="PanelRowInputs" Margin="0,0,0,10"/>
-                <Button Content="Зберегти рядок" Click="AddRow_Click" Height="30" Margin="0,0,0,20"/>
+        <!-- Бічна панель: Оглядач об'єктів -->
+        <Border DockPanel.Dock="Left" Width="220" BorderBrush="#CCC" BorderThickness="0,0,1,0" Background="White">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="0,0,0,1">
+                    <TextBlock Text="Оглядач об'єктів" FontWeight="Bold" Padding="10"/>
+                </Border>
 
-                <TextBlock Text="ПРОЄКЦІЯ ТАБЛИЦІ" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBlock Text="Оберіть колонки (через Ctrl):" FontSize="11" Margin="0,0,0,5"/>
-                <ListBox x:Name="ListProjectColumns" SelectionMode="Multiple" Height="100" Margin="0,0,0,5"/>
-                <TextBox x:Name="TxtProjectName" Text="Назва нової таблиці" Margin="0,0,0,5" Foreground="Gray" GotFocus="TxtProjectName_GotFocus"/>
-                <Button Content="Виконати проєкцію" Click="Project_Click" Height="30"/>
-            </StackPanel>
-        </Grid>
-
-        <GroupBox Grid.Row="2" Header="СТВОРЕННЯ НОВОЇ ТАБЛИЦІ" Padding="5">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBox x:Name="TxtColName" Width="100" ToolTip="Назва колонки" Margin="0,0,10,0" Text="ColName"/>
-                    <ComboBox x:Name="ComboColType" Width="120" Margin="0,0,10,0"/>
-                    <TextBlock Text="Інтервал (для charInvl):" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBox x:Name="TxtInvStart" Width="30" ToolTip="Початок (напр. a)" Margin="0,0,5,0"/>
-                    <TextBox x:Name="TxtInvEnd" Width="30" ToolTip="Кінець (напр. z)" Margin="0,0,10,0"/>
-                    <Button Content="Додати колонку" Click="AddColumn_Click" Width="120"/>
+                <StackPanel DockPanel.Dock="Bottom" Margin="10">
+                    <TextBlock Text="Нова назва:" FontSize="11" Foreground="Gray" Margin="0,0,0,2"/>
+                    <TextBox x:Name="TxtRenameTable" Padding="4" Margin="0,0,0,5"/>
+                    <Button Content="Перейменувати таблицю" Click="RenameTable_Click" Margin="0,0,0,10"/>
+                    <Button Content="Видалити таблицю" Click="DeleteTable_Click" Background="#DC3545" Foreground="White" BorderThickness="0"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Колонки: " FontWeight="Bold"/>
-                    <TextBlock x:Name="TxtPendingCols" Text="Немає" Margin="0,0,20,0" Width="300" TextWrapping="Wrap"/>
-                    <TextBox x:Name="TxtNewTableName" Width="150" ToolTip="Назва таблиці" Margin="0,0,10,0" Text="NewTableName"/>
-                    <Button Content="Зберегти таблицю" Click="CreateTable_Click" Width="150" FontWeight="Bold"/>
+
+                <ListBox x:Name="ListTables" SelectionChanged="ListTables_SelectionChanged" BorderThickness="0" Padding="5"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Центральна робоча зона -->
+        <TabControl Margin="10" Background="White" BorderBrush="#CCC">
+
+            <!-- Вкладка 1: Робота з даними -->
+            <TabItem Header="Дані таблиці">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="280"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DataGrid x:Name="DataGridMain" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True" BorderBrush="#CCC" AlternatingRowBackground="#F9F9F9" Margin="0,0,15,0" HeadersVisibility="Column" SelectionChanged="DataGridMain_SelectionChanged" SelectionMode="Single"/>
+
+                    <!-- Бічна панель операцій -->
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="ДОДАВАННЯ ЗАПИСУ" FontWeight="Bold" Foreground="#333" Margin="0,0,0,10"/>
+                            <StackPanel x:Name="PanelRowInputs"/>
+                            <Button Content="Вставити новий" Click="AddRow_Click" Margin="0,10,0,5" Background="#28A745" Foreground="White" BorderThickness="0"/>
+                            <Grid Margin="0,0,0,25">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Оновити" Click="EditRow_Click" Margin="0,0,5,0" Background="#FFC107" BorderThickness="0"/>
+                                <Button Grid.Column="1" Content="Видалити" Click="DeleteRow_Click" Margin="5,0,0,0" Background="#DC3545" Foreground="White" BorderThickness="0"/>
+                            </Grid>
+
+                            <Rectangle Height="1" Fill="#EEE" Margin="0,0,0,20"/>
+
+                            <TextBlock Text="ПРОЄКЦІЯ ТАБЛИЦІ" FontWeight="Bold" Foreground="#333" Margin="0,0,0,10"/>
+                            <TextBlock Text="Виберіть колонки (Ctrl+Клік):" FontSize="11" Foreground="#666" Margin="0,0,0,5"/>
+                            <ListBox x:Name="ListProjectColumns" SelectionMode="Multiple" Height="120" BorderBrush="#CCC" Margin="0,0,0,10"/>
+                            <TextBox x:Name="TxtProjectName" Text="Назва_нової_таблиці" Foreground="Gray" GotFocus="TxtProjectName_GotFocus" Margin="0,0,0,10"/>
+                            <Button Content="Виконати проєкцію" Click="Project_Click"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка 2: Конструктор таблиць -->
+            <TabItem Header="Конструктор таблиць">
+                <StackPanel Margin="20" HorizontalAlignment="Left" Width="600">
+                    <TextBlock Text="Назва нової таблиці:" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtNewTableName" Padding="5" Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Додавання колонок:" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Ім'я колонки" Grid.Column="0" Foreground="#666"/>
+                        <TextBlock Text="Тип даних" Grid.Column="1" Foreground="#666"/>
+                        <TextBlock Text="Початок" Grid.Column="2" Foreground="#666" ToolTip="Для інтервальних типів"/>
+                        <TextBlock Text="Кінець" Grid.Column="3" Foreground="#666" ToolTip="Для інтервальних типів"/>
+
+                        <TextBox x:Name="TxtColName" Grid.Column="0" Margin="0,20,10,0"/>
+                        <ComboBox x:Name="ComboColType" Grid.Column="1" Margin="0,20,10,0"/>
+                        <TextBox x:Name="TxtInvStart" Grid.Column="2" Margin="0,20,10,0" MaxLength="1"/>
+                        <TextBox x:Name="TxtInvEnd" Grid.Column="3" Margin="0,20,10,0" MaxLength="1"/>
+                        <Button Content="Додати" Grid.Column="4" Margin="0,20,0,0" Click="AddColumn_Click"/>
+                    </Grid>
+
+                    <Border BorderBrush="#DDD" BorderThickness="1" Background="#FAFAFA" Padding="10" Margin="0,0,0,20" MinHeight="100">
+                        <StackPanel>
+                            <TextBlock Text="Схема поточної таблиці:" FontWeight="Bold" Foreground="#666" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="TxtPendingCols" Text="Колонки відсутні" Foreground="#333" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="Створити таблицю" Click="CreateTable_Click" Width="200" HorizontalAlignment="Left" Background="#28A745" Foreground="White" BorderThickness="0"/>
                 </StackPanel>
-            </StackPanel>
-        </GroupBox>
-    </Grid>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>

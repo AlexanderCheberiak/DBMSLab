@@ -92,6 +92,35 @@ namespace Dbms.Core
             }
             return newTable;
         }
+
+        public bool UpdateRow(int id, Dictionary<string, string> values)
+        {
+            var row = Rows.FirstOrDefault(r => r.Id == id);
+            if (row == null) return false;
+
+            foreach (var col in Columns)
+            {
+                if (values.TryGetValue(col.Name, out string val))
+                {
+                    if (!col.Validate(val)) return false;
+                }
+                else return false;
+            }
+
+            row.Values = values;
+            return true;
+        }
+
+        public bool DeleteRow(int id)
+        {
+            var row = Rows.FirstOrDefault(r => r.Id == id);
+            if (row != null)
+            {
+                Rows.Remove(row);
+                return true;
+            }
+            return false;
+        }
     }
 
     public class Database

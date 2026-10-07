@@ -8,118 +8,144 @@ using System.Linq;
 namespace Dbms.Server.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/databases")]
     public class DatabaseController : ControllerBase
     {
-        // Додано таблицю за замовчуванням для тестування
-        private static Database _database = new Database
+        private static Dictionary<string, Database> _databases = new Dictionary<string, Database>
         {
-            Name = "DefaultDB",
-            Tables = new List<Table>
-            {
-                new Table
-                {
-                    Name = "Employees",
-                    Columns = new List<Column>
-                    {
-                        new Column { Name = "Id", Type = ColumnType.Integer },
-                        new Column { Name = "Name", Type = ColumnType.String }
-                    }
-                }
-            }
+            { "DefaultDB", new Database {
+                Name = "DefaultDB",
+                Tables = new List<Table> { new Table { Name = "Employees", Columns = new List<Column> { new Column { Name = "Id", Type = ColumnType.Integer }, new Column { Name = "Name", Type = ColumnType.String } } } }
+            } }
         };
-        private readonly string _filePath = "database.json";
 
         [HttpGet]
-        public ActionResult<Database> GetDatabase() => Ok(_database);
+        public ActionResult<IEnumerable<string>> GetDatabases() => Ok(_databases.Keys);
 
-        [HttpPost("tables")]
-        public ActionResult CreateTable([FromBody] Table table)
+        [HttpGet("{dbName}")]
+        public ActionResult<Database> GetDatabase(string dbName)
         {
-            _database.Tables.Add(table);
+            if (_databases.TryGetValue(dbName, out var db)) return Ok(db);
+            return NotFound();
+        }
+
+        [HttpPost("{dbName}")]
+        public ActionResult CreateDatabase(string dbName)
+        {
+            if (_databases.ContainsKey(dbName)) return Conflict("База даних вже існує.");
+            _databases[dbName] = new Database { Name = dbName, Tables = new List<Table>() };
             return Ok();
         }
 
-        [HttpPost("tables/{tableName}/rows")]
-        public ActionResult AddRow(string tableName, [FromBody] Dictionary<string, string> rowValues)
+        [HttpPut("{dbName}/rename")]
+        public ActionResult RenameDatabase(string dbName, [FromQuery] string newName)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
-            if (table == null) return NotFound("Table not found");
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            if (_databases.ContainsKey(newName)) return Conflict("Назва вже використовується.");
 
-            bool isValid = table.AddRow(rowValues);
-            if (!isValid) return BadRequest("Data validation failed for one or more columns.");
+            db.Name = newName;
+            _databases.Remove(dbName);
+            _databases[newName] = db;
+
+            if (System.IO.File.Exists($"{dbName}.json"))
+                System.IO.File.Move($"{dbName}.json", $"{newName}.json");
 
             return Ok();
         }
 
-        [HttpPost("save")]
-        public ActionResult SaveToDisk()
+        [HttpPost("{dbName}/save")]
+        public ActionResult SaveToDisk(string dbName)
         {
-            var json = JsonSerializer.Serialize(_database);
-            System.IO.File.WriteAllText(_filePath, json);
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            System.IO.File.WriteAllText($"{dbName}.json", JsonSerializer.Serialize(db));
             return Ok();
         }
 
-        [HttpPost("load")]
-        public ActionResult LoadFromDisk()
+        [HttpPost("{dbName}/load")]
+        public ActionResult LoadFromDisk(string dbName)
         {
-            if (System.IO.File.Exists(_filePath))
+            if (System.IO.File.Exists($"{dbName}.json"))
             {
-                var json = System.IO.File.ReadAllText(_filePath);
-                _database = JsonSerializer.Deserialize<Database>(json);
-                return Ok(_database);
+                var json = System.IO.File.ReadAllText($"{dbName}.json");
+                _databases[dbName] = JsonSerializer.Deserialize<Database>(json);
+                return Ok();
             }
-            return NotFound("File not found");
+            return NotFound();
         }
 
-        [HttpPost("tables/{tableName}/project")]
-        public ActionResult ProjectTable(string tableName, [FromQuery] string newName, [FromBody] List<string> columnNames)
+        [HttpPost("{dbName}/tables")]
+        public ActionResult CreateTable(string dbName, [FromBody] Table table)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
-            if (table == null) return NotFound("Table not found");
-
-            var newTable = table.Project(newName, columnNames);
-            _database.Tables.Add(newTable);
-
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            db.Tables.Add(table);
             return Ok();
         }
 
-        [HttpPut("tables/{tableName}/rename")]
-        public ActionResult RenameTable(string tableName, [FromQuery] string newName)
+        [HttpPut("{dbName}/tables/{tableName}/rename")]
+        public ActionResult RenameTable(string dbName, string tableName, [FromQuery] string newName)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
             if (table == null) return NotFound();
             table.Name = newName;
             return Ok();
         }
 
-        [HttpDelete("tables/{tableName}")]
-        public ActionResult DeleteTable(string tableName)
+        [HttpDelete("{dbName}/tables/{tableName}")]
+        public ActionResult DeleteTable(string dbName, string tableName)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
             if (table == null) return NotFound();
-            _database.Tables.Remove(table);
+            db.Tables.Remove(table);
             return Ok();
         }
 
-        [HttpPut("tables/{tableName}/rows/{rowId}")]
-        public ActionResult UpdateRow(string tableName, int rowId, [FromBody] Dictionary<string, string> rowValues)
+        [HttpPost("{dbName}/tables/{tableName}/rows")]
+        public ActionResult AddRow(string dbName, string tableName, [FromBody] Dictionary<string, string> rowValues)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
-            if (table == null) return NotFound();
-
-            if (table.UpdateRow(rowId, rowValues)) return Ok();
-            return BadRequest("Data validation failed.");
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null || !table.AddRow(rowValues)) return BadRequest();
+            return Ok();
         }
 
-        [HttpDelete("tables/{tableName}/rows/{rowId}")]
-        public ActionResult DeleteRow(string tableName, int rowId)
+        [HttpPut("{dbName}/tables/{tableName}/rows/{rowId}")]
+        public ActionResult UpdateRow(string dbName, string tableName, int rowId, [FromBody] Dictionary<string, string> rowValues)
         {
-            var table = _database.Tables.FirstOrDefault(t => t.Name == tableName);
-            if (table == null) return NotFound();
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null || !table.UpdateRow(rowId, rowValues)) return BadRequest();
+            return Ok();
+        }
 
-            if (table.DeleteRow(rowId)) return Ok();
-            return NotFound();
+        [HttpDelete("{dbName}/tables/{tableName}/rows/{rowId}")]
+        public ActionResult DeleteRow(string dbName, string tableName, int rowId)
+        {
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null || !table.DeleteRow(rowId)) return NotFound();
+            return Ok();
+        }
+
+        [HttpPost("{dbName}/tables/{tableName}/project")]
+        public ActionResult ProjectTable(string dbName, string tableName, [FromQuery] string newName, [FromBody] List<string> columnNames)
+        {
+            if (!_databases.TryGetValue(dbName, out var db)) return NotFound();
+            var table = db.Tables.FirstOrDefault(t => t.Name == tableName);
+            if (table == null) return NotFound();
+            db.Tables.Add(table.Project(newName, columnNames));
+            return Ok();
+        }
+
+        [HttpPost("import")]
+        public ActionResult ImportDatabase([FromBody] Database db)
+        {
+            if (db == null || string.IsNullOrWhiteSpace(db.Name)) return BadRequest("Некоректний формат бази");
+
+            // Додає нову базу або перезаписує існуючу з такою ж назвою
+            _databases[db.Name] = db;
+            return Ok();
         }
     }
 }

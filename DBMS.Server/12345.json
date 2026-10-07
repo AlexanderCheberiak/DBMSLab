@@ -1,0 +1,1 @@
+{"Name":"DefaultDB","Tables":[{"Name":"Employees","Columns":[{"Name":"Id","Type":0,"IntervalStart":null,"IntervalEnd":null},{"Name":"Name","Type":3,"IntervalStart":null,"IntervalEnd":null}],"Rows":[]}]}

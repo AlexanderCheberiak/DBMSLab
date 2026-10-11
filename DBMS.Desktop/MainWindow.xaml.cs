@@ -90,21 +90,6 @@ namespace Dbms.Desktop
             if (response.IsSuccessStatusCode) LoadDatabasesList();
         }
 
-        //private async void LoadDb_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (string.IsNullOrWhiteSpace(TxtDbName.Text)) return;
-        //    var response = await _httpClient.PostAsync($"api/databases/{TxtDbName.Text}/load", null);
-        //    if (response.IsSuccessStatusCode) LoadDatabasesList();
-        //    else MessageBox.Show("Файл бази не знайдено на сервері.");
-        //}
-
-        //private async void SaveDb_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (string.IsNullOrEmpty(CurrentDbName)) return;
-        //    var response = await _httpClient.PostAsync($"api/databases/{CurrentDbName}/save", null);
-        //    TxtStatus.Text = response.IsSuccessStatusCode ? "Збережено на диск" : "Помилка збереження";
-        //}
-
         private async void LoadFromFile_Click(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog

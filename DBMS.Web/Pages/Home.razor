@@ -1,0 +1,227 @@
+﻿@page "/"
+@using Dbms.Core
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="container-fluid mt-3">
+    <!-- Верхня панель -->
+    <div class="row bg-light p-2 border-bottom mb-3 align-items-center">
+        <div class="col-auto">
+            <strong>Активна БД:</strong>
+            <select class="form-select d-inline-block w-auto ms-2" @onchange="OnDbChanged">
+                @foreach (var dbName in databases)
+                {
+                    <option value="@dbName" selected="@(dbName == currentDbName)">@dbName</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" @onclick="SaveDb">Зберегти на сервері</button>
+            <button class="btn btn-outline-secondary ms-2" @onclick="LoadDatabasesList">Оновити</button>
+        </div>
+        <div class="col-auto ms-auto d-flex">
+            <input class="form-control me-2" @bind="newDbName" placeholder="Назва нової БД" />
+            <button class="btn btn-success" @onclick="CreateDb">Створити БД</button>
+        </div>
+    </div>
+
+    <!-- Повідомлення про статус -->
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert alert-info">@statusMessage</div>
+    }
+
+    <div class="row">
+        <!-- Бічна панель з таблицями -->
+        <div class="col-3">
+            <h5 class="bg-secondary text-white p-2 mb-0">Таблиці</h5>
+            <div class="list-group rounded-0">
+                @if (currentDb?.Tables != null)
+                {
+                    @foreach (var table in currentDb.Tables)
+                    {
+                        <button class="list-group-item list-group-item-action @(selectedTable?.Name == table.Name ? "active" : "")"
+                                @onclick="() => SelectTable(table)">
+                            @table.Name
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Головна робоча зона -->
+        <div class="col-9">
+            @if (selectedTable != null)
+            {
+                <h5>Дані таблиці: @selectedTable.Name</h5>
+
+                <!-- Сітка даних DataGrid (HTML Table) -->
+                <table class="table table-bordered table-hover mt-3">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Id</th>
+                            @foreach (var col in selectedTable.Columns)
+                            {
+                                <th>@col.Name</th>
+                            }
+                            <th>Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in selectedTable.Rows)
+                        {
+                            <tr>
+                                <td>@row.Id</td>
+                                @foreach (var col in selectedTable.Columns)
+                                {
+                                    <td>@(row.Values.ContainsKey(col.Name) ? row.Values[col.Name] : "")</td>
+                                }
+                                <td>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteRow(row.Id)">Видалити</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Форма додавання рядка -->
+                <div class="card mt-4">
+                    <div class="card-header fw-bold">Додати запис</div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var col in selectedTable.Columns)
+                            {
+                                <div class="col-3 mb-2">
+                                    <label class="form-label text-muted small">@col.Name (@col.Type)</label>
+                                    <input class="form-control" @bind="rowInputs[col.Name]" />
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-primary mt-3" @onclick="AddRow">Вставити рядок</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mt-5">Оберіть таблицю зі списку ліворуч для перегляду даних.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> databases = new();
+    private Database? currentDb;
+    private Table? selectedTable;
+    private string currentDbName = "";
+    private string newDbName = "";
+    private string statusMessage = "";
+
+    // Словник для зберігання введених даних нового рядка
+    private Dictionary<string, string> rowInputs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDatabasesList();
+    }
+
+    private async Task LoadDatabasesList()
+    {
+        var response = await Http.GetAsync("api/databases");
+        if (response.IsSuccessStatusCode)
+        {
+            databases = await response.Content.ReadFromJsonAsync<List<string>>() ?? new();
+            if (databases.Count > 0 && string.IsNullOrEmpty(currentDbName))
+            {
+                currentDbName = databases[0];
+            }
+            await LoadCurrentDatabase();
+        }
+    }
+
+    private async Task LoadCurrentDatabase()
+    {
+        if (string.IsNullOrEmpty(currentDbName)) return;
+
+        var response = await Http.GetAsync($"api/databases/{currentDbName}");
+        if (response.IsSuccessStatusCode)
+        {
+            currentDb = await response.Content.ReadFromJsonAsync<Database>();
+
+            // Відновлення вибору таблиці після оновлення
+            if (currentDb?.Tables != null)
+            {
+                var match = currentDb.Tables.FirstOrDefault(t => t.Name == selectedTable?.Name);
+                SelectTable(match ?? currentDb.Tables.FirstOrDefault());
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnDbChanged(ChangeEventArgs e)
+    {
+        currentDbName = e.Value?.ToString() ?? "";
+        selectedTable = null;
+        await LoadCurrentDatabase();
+    }
+
+    private void SelectTable(Table? table)
+    {
+        selectedTable = table;
+        rowInputs.Clear();
+        if (table != null)
+        {
+            foreach (var col in table.Columns)
+            {
+                rowInputs[col.Name] = "";
+            }
+        }
+    }
+
+    private async Task CreateDb()
+    {
+        if (string.IsNullOrWhiteSpace(newDbName)) return;
+        var response = await Http.PostAsync($"api/databases/{newDbName}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            statusMessage = $"Базу {newDbName} створено.";
+            newDbName = "";
+            await LoadDatabasesList();
+        }
+    }
+
+    private async Task SaveDb()
+    {
+        if (string.IsNullOrEmpty(currentDbName)) return;
+        var response = await Http.PostAsync($"api/databases/{currentDbName}/save", null);
+        statusMessage = response.IsSuccessStatusCode ? "Збережено на диск." : "Помилка збереження.";
+    }
+
+    private async Task AddRow()
+    {
+        if (selectedTable == null || string.IsNullOrEmpty(currentDbName)) return;
+
+        var response = await Http.PostAsJsonAsync($"api/databases/{currentDbName}/tables/{selectedTable.Name}/rows", rowInputs);
+        if (response.IsSuccessStatusCode)
+        {
+            statusMessage = "Запис додано.";
+            await LoadCurrentDatabase(); // Перезавантажує дані таблиці
+        }
+        else
+        {
+            statusMessage = "Помилка валідації типів.";
+        }
+    }
+
+    private async Task DeleteRow(int rowId)
+    {
+        if (selectedTable == null || string.IsNullOrEmpty(currentDbName)) return;
+
+        var response = await Http.DeleteAsync($"api/databases/{currentDbName}/tables/{selectedTable.Name}/rows/{rowId}");
+        if (response.IsSuccessStatusCode)
+        {
+            statusMessage = "Запис видалено.";
+            await LoadCurrentDatabase();
+        }
+    }
+}

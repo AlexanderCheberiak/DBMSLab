@@ -27,6 +27,19 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        window.downloadFileFromBase64 = function (filename, base64) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = "data:application/json;base64," + base64;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
 </body>
+
 
 </html>

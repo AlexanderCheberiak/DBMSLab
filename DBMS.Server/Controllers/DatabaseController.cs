@@ -15,7 +15,7 @@ namespace Dbms.Server.Controllers
         {
             { "DefaultDB", new Database {
                 Name = "DefaultDB",
-                Tables = new List<Table> { new Table { Name = "Employees", Columns = new List<Column> { new Column { Name = "Id", Type = ColumnType.Integer }, new Column { Name = "Name", Type = ColumnType.String } } } }
+                Tables = new List<Table> { new Table { Name = "Test_Table", Columns = new List<Column> { new Column { Name = "Number", Type = ColumnType.Integer }, new Column { Name = "String", Type = ColumnType.String } } } }
             } }
         };
 
@@ -143,7 +143,6 @@ namespace Dbms.Server.Controllers
         {
             if (db == null || string.IsNullOrWhiteSpace(db.Name)) return BadRequest("Некоректний формат бази");
 
-            // Додає нову базу або перезаписує існуючу з такою ж назвою
             _databases[db.Name] = db;
             return Ok();
         }

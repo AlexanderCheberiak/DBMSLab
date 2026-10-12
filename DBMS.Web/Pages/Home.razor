@@ -83,7 +83,7 @@
                                 <table class="table table-bordered table-hover table-sm">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>#</th>
+                                            
                                             @foreach (var col in selectedTable.Columns)
                                             {
                                                 <th>@col.Name</th>
@@ -94,7 +94,7 @@
                                         @foreach (var row in selectedTable.Rows)
                                         {
                                             <tr @onclick="() => SelectRow(row)" class="@(selectedRowId == row.Id ? "table-primary" : "")" style="cursor:pointer;">
-                                                <td>@row.Id</td>
+                                                
                                                 @foreach (var col in selectedTable.Columns)
                                                 {
                                                     <td>@(row.Values.ContainsKey(col.Name) ? row.Values[col.Name] : "")</td>

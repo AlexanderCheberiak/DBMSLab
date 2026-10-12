@@ -8,9 +8,8 @@ namespace Dbms.Tests
     public class TableTests
     {
         [Fact]
-        public void AddRow_ValidAndInvalidData_ReturnsExpectedResults()
+        public void InsertAndValidateData()
         {
-            // Створення таблиці зі стандартними типами
             var table = new Table
             {
                 Name = "Users",
@@ -24,18 +23,16 @@ namespace Dbms.Tests
             var validRow = new Dictionary<string, string> { { "Id", "1" }, { "Name", "Alice" } };
             var invalidRow = new Dictionary<string, string> { { "Id", "TextInsteadOfNumber" }, { "Name", "Bob" } };
 
-            // Спроба додати обидва рядки
             bool isAddedValid = table.AddRow(validRow);
             bool isAddedInvalid = table.AddRow(invalidRow);
 
-            // Перевірка результатів
             Assert.True(isAddedValid);
             Assert.False(isAddedInvalid); 
             Assert.Single(table.Rows);    
         }
 
         [Fact]
-        public void CharInvl_Validation_WorksCorrectly()
+        public void CharInvl_Validation()
         {
             // Налаштування колонки типу charInvl з інтервалом 'a' - 'f'
             var col = new Column
@@ -55,7 +52,7 @@ namespace Dbms.Tests
         }
 
         [Fact]
-        public void Project_CreatesNewTable_WithSelectedColumnsOnly()
+        public void ProjectionTest()
         {
             //Створення таблиці з трьома колонками
             var table = new Table
